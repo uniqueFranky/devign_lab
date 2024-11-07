@@ -142,7 +142,7 @@ class Process(Config):
     @property
     def device(self):
         return torch.device(
-            "cuda"
+            "cuda:3"
             if (torch.cuda.is_available() and self.get_property("use_gpu"))
             else "cpu"
         )

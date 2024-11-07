@@ -24,20 +24,27 @@ def init_weights(m):
         torch.nn.init.xavier_uniform_(m.weight)
 
 class Readout(nn.Module):
-    def __init__(self, max_nodes):
+    def __init__(self, max_nodes, hidden_size, embed_size):
         super(Readout, self).__init__()
         self.max_nodes = max_nodes
-        self.conv_y1 = nn.Conv1d(in_channels=200, out_channels=200, kernel_size=3)
+        self.conv_y1 = nn.Conv1d(in_channels=hidden_size, out_channels=hidden_size, kernel_size=3)
         self.pool_y1 = nn.MaxPool1d(kernel_size=3, stride=2)
-        self.conv_y2 = nn.Conv1d(in_channels=200, out_channels=200, kernel_size=1)
+        self.conv_y2 = nn.Conv1d(in_channels=hidden_size, out_channels=hidden_size, kernel_size=1)
         self.pool_y2 = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.fc_y = nn.Linear(200, 1)
+        self.fc_y = nn.Linear(hidden_size, 1)
 
-        self.conv_z1 = nn.Conv1d(in_channels=200 + 769, out_channels=200 + 769, kernel_size=3)
+        self.conv_z1 = nn.Conv1d(in_channels=hidden_size + embed_size, out_channels=hidden_size + embed_size, kernel_size=3)
         self.pool_z1 = nn.MaxPool1d(kernel_size=3, stride=2)
-        self.conv_z2 = nn.Conv1d(in_channels=200 + 769, out_channels=200 + 769, kernel_size=1)
+        self.conv_z2 = nn.Conv1d(in_channels=hidden_size + embed_size, out_channels=hidden_size + embed_size, kernel_size=1)
         self.pool_z2 = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.fc_z = nn.Linear(301, 1)
+        self.fc_z = nn.Linear(hidden_size + embed_size, 1)
+
+        init_weights(self.conv_y1)
+        init_weights(self.conv_y2)
+        init_weights(self.conv_z1)
+        init_weights(self.conv_z2)
+        init_weights(self.fc_y)
+        init_weights(self.fc_z)
 
         self.sigmoid = nn.Sigmoid()
 
@@ -65,14 +72,17 @@ class Net(nn.Module):
     def __init__(self, gated_graph_conv_args, emb_size, max_nodes, device):
         super(Net, self).__init__()
         self.ggc = GatedGraphConv(**gated_graph_conv_args).to(device) 
+        self.linear1 = nn.Linear(769, emb_size).to(device)
+        init_weights(self.linear1)
         self.emb_size=emb_size
-        self.readout = Readout(max_nodes).to(device)
+        self.readout = Readout(max_nodes, gated_graph_conv_args['out_channels'], emb_size).to(device)
         
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        x = self.ggc(x, edge_index)
-        x = self.readout(x, data.x)
+        x = F.relu(self.linear1(x))
+        h = self.ggc(x, edge_index)
+        x = self.readout(h, x)
 
         return x
 
