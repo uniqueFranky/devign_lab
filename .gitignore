@@ -147,3 +147,5 @@ static
 
 .vscode
 .DS_Store
+codebert-base
+codebert-base-tokenizer

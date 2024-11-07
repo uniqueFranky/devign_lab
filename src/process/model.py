@@ -33,9 +33,9 @@ class Readout(nn.Module):
         self.pool_y2 = nn.MaxPool1d(kernel_size=2, stride=2)
         self.fc_y = nn.Linear(200, 1)
 
-        self.conv_z1 = nn.Conv1d(in_channels=301, out_channels=301, kernel_size=3)
+        self.conv_z1 = nn.Conv1d(in_channels=200 + 769, out_channels=200 + 769, kernel_size=3)
         self.pool_z1 = nn.MaxPool1d(kernel_size=3, stride=2)
-        self.conv_z2 = nn.Conv1d(in_channels=301, out_channels=301, kernel_size=1)
+        self.conv_z2 = nn.Conv1d(in_channels=200 + 769, out_channels=200 + 769, kernel_size=1)
         self.pool_z2 = nn.MaxPool1d(kernel_size=2, stride=2)
         self.fc_z = nn.Linear(301, 1)
 

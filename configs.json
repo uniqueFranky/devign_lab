@@ -10,7 +10,7 @@
                 "aggr": "add",
                 "bias": true
             },            
-            "emb_size": 101
+            "emb_size": 769
         }
     },
     "create": {
@@ -56,7 +56,7 @@
     "process": {
         "use_gpu": true,
         "epochs": 200,
-        "patience": 10,
+        "patience": 20,
         "delta": 0,
         "verbose": true,
         "batch_size": 512,

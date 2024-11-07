@@ -4,6 +4,31 @@ from torch_geometric.data import Data
 from src.utils.functions.parse import tokenizer
 from src.utils import log as logger
 from gensim.models.keyedvectors import Word2VecKeyedVectors
+import src.prepare.codebert as codebert
+
+class BertNodesEmbedding:
+    def __init__(self, max_nodes: int):
+        self.max_nodes = max_nodes
+        assert self.max_nodes >= 0
+        self.target = torch.zeros(self.max_nodes, 768 + 1).float().to(torch.device('cuda'))
+
+    def __call__(self, nodes):
+        embedded_nodes = self.embed_nodes(nodes)
+        self.target[:embedded_nodes.size(0), :] = embedded_nodes
+
+        return self.target
+
+    def embed_nodes(self, nodes):
+        embeddings = torch.zeros(0, 768 + 1).float().to(torch.device('cuda'))
+        for n_id, node in nodes.items():
+            # Get node's code
+            node_code = node.get_code()
+            source_embedding = codebert.get_code_embedding(node_code).squeeze(0)
+            # The node representation is the concatenation of label and source embeddings
+            embedding = torch.cat((source_embedding, torch.Tensor([node.type]).to(torch.device('cuda'))), dim=0).unsqueeze(0)
+
+            embeddings = torch.cat((embeddings, embedding), dim=0)
+        return embeddings
 
 
 class NodesEmbedding:
@@ -100,7 +125,8 @@ class GraphsEmbedding:
 
 
 def nodes_to_input(nodes, target, max_nodes, keyed_vectors, edge_type):
-    nodes_embedding = NodesEmbedding(max_nodes, keyed_vectors)
+    # nodes_embedding = NodesEmbedding(max_nodes, keyed_vectors)
+    nodes_embedding = BertNodesEmbedding(max_nodes)
     graphs_embedding = GraphsEmbedding(edge_type)
     label = torch.tensor([target]).float()
 
