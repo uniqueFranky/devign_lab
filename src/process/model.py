@@ -66,7 +66,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.ggc = GatedGraphConv(**gated_graph_conv_args).to(device) 
         self.emb_size=emb_size
-        self.readout = Readout(max_nodes)
+        self.readout = Readout(max_nodes).to(device)
         
 
     def forward(self, data):

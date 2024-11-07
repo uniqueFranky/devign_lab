@@ -3,7 +3,8 @@ from ..utils.objects import stats
 
 
 def softmax_accuracy(probs, all_labels):
-    acc = (torch.argmax(probs) == all_labels).sum()
+    pred = probs > 0.5
+    acc = (pred == all_labels).sum()
     acc = torch.div(acc, len(all_labels) + 0.0)
     return acc
 
