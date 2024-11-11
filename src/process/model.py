@@ -92,17 +92,20 @@ class GatedGraphRecurrentLayer(nn.Module):
 class Net(nn.Module):
     def __init__(self, gated_graph_conv_args, emb_size, max_nodes, device):
         super(Net, self).__init__()
-        self.linear1 = nn.Linear(769, emb_size).to(device)
+        self.linear2 = nn.Linear(769, emb_size).to(device)
+        self.linear1 = nn.Linear(769, gated_graph_conv_args["out_channels"]).to(device)
         init_weights(self.linear1)
+        init_weights(self.linear2)
         self.ggr = GatedGraphRecurrentLayer(gated_graph_conv_args["out_channels"], 6).to(device)
         self.readout = Readout(max_nodes, gated_graph_conv_args["out_channels"], emb_size).to(device)
         
 
     def forward(self, data):
         x, edge_index_ast, edge_index_cfg = data[0].x, data[0].edge_index, data[1].edge_index
-        x = F.relu(self.linear1(x))
-        h = self.ggr(x, edge_index_ast, edge_index_cfg)
-        x = self.readout(h, x)
+        x1 = F.relu(self.linear1(x))
+        h = self.ggr(x1, edge_index_ast, edge_index_cfg)
+        x2 = F.relu(self.linear2(x))
+        x = self.readout(h, x2)
         return x
 
     def save(self, path):
