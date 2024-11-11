@@ -124,10 +124,16 @@ class GraphsEmbedding:
         return coo
 
 
-def nodes_to_input(nodes, target, max_nodes, keyed_vectors, edge_type):
+
+def nodes_to_input(nodes, target, max_nodes, edge_types):
     # nodes_embedding = NodesEmbedding(max_nodes, keyed_vectors)
     nodes_embedding = BertNodesEmbedding(max_nodes)
-    graphs_embedding = GraphsEmbedding(edge_type)
+    nodes_emd = nodes_embedding(nodes)
+    ret = []
     label = torch.tensor([target]).float()
+    for edge_type in edge_types:
+        graphs_embedding = GraphsEmbedding(edge_type)
+        ret.append(Data(x=nodes_emd, edge_index=graphs_embedding(nodes), y=label))
 
-    return Data(x=nodes_embedding(nodes), edge_index=graphs_embedding(nodes), y=label)
+    return ret
+    

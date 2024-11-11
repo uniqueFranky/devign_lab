@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch_geometric.nn.conv import GatedGraphConv
+from torch_geometric.nn.conv import GatedGraphConv, GCNConv
 
 torch.manual_seed(2020)
 
@@ -66,24 +66,43 @@ class Readout(nn.Module):
         return self.sigmoid(avg)
 
         
-         
+class GatedGraphRecurrentLayer(nn.Module):
+    def __init__(self, hidden_size, num_layers):
+        super(GatedGraphRecurrentLayer, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.conv_ast = GCNConv(hidden_size, hidden_size)
+        self.conv_cfg = GCNConv(hidden_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, 1, batch_first=True)
+    
+    def agg(self, a_ast, a_cfg):
+        return a_ast + a_cfg
+
+    def forward(self, x, edge_ast, edge_cfg):
+        h = x
+        for _ in range(self.num_layers):
+            a_ast = self.conv_ast(h, edge_ast)
+            a_cfg = self.conv_cfg(h, edge_cfg)
+            out, h = self.gru(self.agg(a_ast, a_cfg).unsqueeze(1), h.unsqueeze(0))
+            h = h[-1, :, :]
+        return h
+
+
 
 class Net(nn.Module):
     def __init__(self, gated_graph_conv_args, emb_size, max_nodes, device):
         super(Net, self).__init__()
-        self.ggc = GatedGraphConv(**gated_graph_conv_args).to(device) 
         self.linear1 = nn.Linear(769, emb_size).to(device)
         init_weights(self.linear1)
-        self.emb_size=emb_size
-        self.readout = Readout(max_nodes, gated_graph_conv_args['out_channels'], emb_size).to(device)
+        self.ggr = GatedGraphRecurrentLayer(gated_graph_conv_args["out_channels"], 6).to(device)
+        self.readout = Readout(max_nodes, gated_graph_conv_args["out_channels"], emb_size).to(device)
         
 
     def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+        x, edge_index_ast, edge_index_cfg = data[0].x, data[0].edge_index, data[1].edge_index
         x = F.relu(self.linear1(x))
-        h = self.ggc(x, edge_index)
+        h = self.ggr(x, edge_index_ast, edge_index_cfg)
         x = self.readout(h, x)
-
         return x
 
     def save(self, path):

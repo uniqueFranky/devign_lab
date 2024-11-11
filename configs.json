@@ -25,7 +25,7 @@
         "cpg": "data/cpg/",
         "joern": "data/joern/",
         "raw": "data/raw/",
-        "input": "data/input/",
+        "input": "data/input_mul/",
         "model": "data/model/",
         "tokens": "data/tokens/",
         "w2v": "data/w2v/"

@@ -97,24 +97,14 @@ def create_task():
 
 
 def embed_task():
+    edge_types = ['Ast', 'Cfg']
     context = configs.Embed()
     # Tokenize source code into tokens
     dataset_files = data.get_directory_files(PATHS.cpg)  # 从data/cpg文件家中取出之前生成好的所有.pkl文件
-    w2vmodel = Word2Vec(**context.w2v_args)
-    w2v_init = True
 
     for pkl_file in dataset_files:
         file_name = pkl_file.split(".")[0]
         cpg_dataset = data.load(PATHS.cpg, pkl_file)
-        tokens_dataset = data.tokenize(cpg_dataset)  # 对程序源码文本进行分词，返回分词的结果
-        data.write(tokens_dataset, PATHS.tokens, f"{file_name}_{FILES.tokens}")
-        # word2vec used to learn the initial embedding of each token
-        w2vmodel.build_vocab(sentences=tokens_dataset.tokens, update=not w2v_init)
-        w2vmodel.train(
-            tokens_dataset.tokens, total_examples=w2vmodel.corpus_count, epochs=1
-        )
-        if w2v_init:
-            w2v_init = False
         # Embed cpg to node representation and pass to graph data structure
         cpg_dataset["nodes"] = cpg_dataset.apply(
             lambda row: cpg.parse_to_nodes(row.cpg, context.max_nodes),
@@ -122,12 +112,12 @@ def embed_task():
         )
         # remove rows with no nodes
         cpg_dataset = cpg_dataset.loc[cpg_dataset.nodes.map(len) > 0]
-        cpg_dataset["input"] = cpg_dataset.apply(
+        cpg_dataset['input'] = cpg_dataset.apply(
             lambda row: prepare.nodes_to_input(
-                row.nodes, row.target, context.max_nodes, w2vmodel.wv, context.edge_type
+                row.nodes, row.target, context.max_nodes, edge_types
             ),
             axis=1,
-        )  # 使用w2vec对每一个节点的文本进行编码
+        )
         data.drop(cpg_dataset, ["nodes"])
         print(f"Saving input dataset {file_name} with size {len(cpg_dataset)}.")
         data.write(
@@ -135,8 +125,6 @@ def embed_task():
         )
         del cpg_dataset
         gc.collect()
-    print("Saving w2vmodel.")
-    w2vmodel.save(f"{PATHS.w2v}/{FILES.w2v}")
 
 
 def process_task(stopping, test_only=False):

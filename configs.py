@@ -76,6 +76,10 @@ class Paths(Data):
     def joern(self):
         return self.get_property("joern")
 
+    @property
+    def node_embeddings(self):
+        return self.get_property("node_embeddings")
+
 
 class Files(Data):
     def __init__(self):

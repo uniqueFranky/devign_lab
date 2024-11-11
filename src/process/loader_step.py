@@ -12,8 +12,9 @@ class LoaderStep:
         self.stats = stats.Stats(self.name)
 
         for i, batch in enumerate(self.loader):
-            batch.to(self.device)
-            stat: stats.Stat = step(i, batch, batch.y)
+            batch[0].to(self.device)
+            batch[1].to(self.device)
+            stat: stats.Stat = step(i, batch, batch[0].y)
             self.stats(stat)
 
         return self.stats
